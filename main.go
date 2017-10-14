@@ -1,51 +1,68 @@
 package main
 
 import (
-	"crypto/sha256"
-	"encoding/json"
 	"fmt"
 	"time"
 )
 
 func main() {
-	// sum := sha256.Sum256([]byte("hello world\n"))
-	// fmt.Println(sum)
-	// t := time.Now().Unix()
-	// fmt.Println(t)
+	// Walk through the entire process
+	// Create three wallets
+	kev := Wallet{}
+	nate := Wallet{}
+	pete := Wallet{}
+	kev.New()
+	nate.New()
+	pete.New()
 
-	kev := CreateWallet()
-	pete := CreateWallet()
-	nate := CreateWallet()
-	db := CreateWallet()
+	// Kev said he rips nate
+	kevPriv, kevPub := kev.Encode()
+	rip := "Some generic rip."
+	transaction := Tx{}
+	transaction.Initiate(rip, kevPriv, kevPub)
 
-	rip := Rip{
-		Rip: "Why do you live so far away from home? Because I'm not afraid to go to work.",
-		Votes: []Vote{
-			Vote{
-				Address:  kev,
-				Approval: true,
-			},
-			Vote{
-				Address:  pete,
-				Approval: true,
-			},
-			Vote{
-				Address:  db,
-				Approval: false,
-			},
-			Vote{
-				Address:  nate,
-				Approval: true,
-			},
-		},
+	// Pete and Nate verify and vote on the rip, asyncronously
+	ticker := time.NewTicker(1 * time.Second)
+	vc := make(chan Vote)
+	current := 0
+	limit := 3 // Timeout at 10 seconds
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+
+				// These ifs would not be in prod
+				if current == 0 {
+					// Pete votes
+					vote, err := pete.Vote(&transaction, true)
+					if err == nil {
+						vc <- *vote
+					}
+				}
+				if current == 2 {
+					// Nate votes
+					vote, err := nate.Vote(&transaction, true)
+					if err == nil {
+						vc <- *vote
+					}
+				}
+
+				// Increment the timer
+				current++
+			}
+		}
+	}()
+
+	for vote := range vc {
+		transaction.Votes = append(transaction.Votes, vote)
+
+		// Close the channel
+		if current >= limit {
+			close(vc)
+		}
 	}
 
-	ripBytes, _ := json.Marshal(rip)
-	tx := Tx{
-		Rip:       rip,
-		Hash:      sha256.Sum256(ripBytes),
-		Timestamp: time.Now().Unix(),
-	}
-
-	fmt.Println(tx)
+	// Complete the transaction
+	transaction.Complete()
+	fmt.Println("Complete")
 }
