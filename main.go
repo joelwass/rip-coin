@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/nathanjohnson320/rip-coin/ipfs"
 )
@@ -78,6 +79,10 @@ func main() {
 				fmt.Println(m)
 			}
 		}()
+
+		ipfs.Publish("Hello")
+		time.Sleep(5 * time.Second)
+		ipfs.Publish("Its me")
 	}()
 	<-spin
 }

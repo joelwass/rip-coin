@@ -19,9 +19,9 @@ import (
 // Subscribe listens on a message for new data
 func Subscribe(sub chan string) {
 	cmdName := "ipfs"
-	cmdArgs := []string{"pubsub", "sub", "rip-coin-tx"}
+	args := []string{"pubsub", "sub", "rip-coin-tx"}
 
-	cmd := exec.Command(cmdName, cmdArgs...)
+	cmd := exec.Command(cmdName, args...)
 	r, w := io.Pipe()
 	cmd.Stdout = w
 	cmd.Stdin = r
@@ -38,10 +38,11 @@ func Subscribe(sub chan string) {
 			}
 
 			// We terminate on the chinese character for dead
-			s = append(s, c)
 			if c == '死' {
 				sub <- string(s)
 				s = []rune{}
+			} else {
+				s = append(s, c)
 			}
 		}
 	}()
@@ -49,6 +50,17 @@ func Subscribe(sub chan string) {
 	err = cmd.Start()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error starting Cmd", err)
+		os.Exit(1)
+	}
+}
+
+// Publish pushes a msg to the rip-coin-tx topic
+func Publish(msg string) {
+	cmd := "ipfs"
+	args := []string{"pubsub", "pub", "rip-coin-tx", msg + "死"}
+
+	if err := exec.Command(cmd, args...).Run(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
