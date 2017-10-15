@@ -1,14 +1,24 @@
-package main
+package rip
 
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"io/ioutil"
+	"os"
+	"os/user"
 )
+
+// DiskWallet is the struct to use for encoding when we save
+type DiskWallet struct {
+	Pub  []byte
+	Priv []byte
+}
 
 // Wallet is an individual user
 type Wallet struct {
@@ -22,10 +32,28 @@ func (w *Wallet) New() {
 }
 
 // Save writes the pem files to disk
-func (w *Wallet) Save() {
+func (w *Wallet) Save(dir string) {
+	// Check if the path exists fir
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		e := os.Mkdir(dir, 0700)
+		if e != nil {
+			fmt.Println(e)
+		}
+	}
+
 	priv, pub := w.Encode()
-	ioutil.WriteFile("./priv.pem", priv, 0644)
-	ioutil.WriteFile("./pub.pem", pub, 0644)
+	contents, err := json.Marshal(DiskWallet{
+		Pub:  pub,
+		Priv: priv,
+	})
+	if err != nil {
+		fmt.Println("Error encoding wallet.")
+	}
+
+	err = ioutil.WriteFile(dir+"wallet.dat", contents, 0700)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 // Encode s a key so it can be read from file
@@ -72,4 +100,19 @@ func (w *Wallet) Vote(t *Tx, vote bool) (*Vote, error) {
 	}
 
 	return &Vote{Approval: vote, Address: pub}, nil
+}
+
+// LoadWallet retrieves a wallet
+func LoadWallet() (*DiskWallet, error) {
+	usr, _ := user.Current()
+	dir := usr.HomeDir
+
+	dat, err := ioutil.ReadFile(dir + "/.rip/wallet.dat")
+	if err != nil {
+		return nil, err
+	}
+	w := DiskWallet{}
+	json.Unmarshal(dat, &w)
+
+	return &w, nil
 }

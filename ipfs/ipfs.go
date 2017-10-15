@@ -38,7 +38,8 @@ func Subscribe(sub chan string) {
 			}
 
 			// We terminate on the chinese character for dead
-			if c == '死' {
+			// or if we're at 1mb of buffer
+			if c == '死' || len(s) > 1048576 {
 				sub <- string(s)
 				s = []rune{}
 			} else {

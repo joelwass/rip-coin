@@ -1,4 +1,4 @@
-package main
+package rip
 
 import (
 	"crypto/ecdsa"
@@ -11,14 +11,14 @@ import (
 
 // Tx is the transaction
 type Tx struct {
-	PreviousHash    [32]byte // The last transaction hash
-	Hash            [32]byte // The hash for block validation
-	TotalAmount     int64    // All the RC generator for the transaction
-	NumVotes        int64    // How many people voted
-	RipperPublicKey []byte   // Who initiated the transaction
-	Rip                      // The context of the rip
-	Timestamp       int64    // Current time that we can use for expiration
-	Signature                // The signature of the transaction used to reject bogus transactions
+	PreviousHash    [32]byte           `json:"previousHash"`    // The last transaction hash
+	Hash            [32]byte           `json:"hash"`            // The hash for block validation
+	TotalAmount     int64              `json:"totalAmount"`     // All the RC generator for the transaction
+	NumVotes        int64              `json:"numVotes"`        // How many people voted
+	RipperPublicKey []byte             `json:"ripperPublicKey"` // Who initiated the transaction
+	Rip             `json:"rip"`       // The context of the rip
+	Timestamp       int64              `json:"timestamp"` // Current time that we can use for expiration
+	Signature       `json:"signature"` // The signature of the transaction used to reject bogus transactions
 }
 
 // Initiate starts a transaction, verifies it
@@ -75,14 +75,14 @@ func AddToBlockchain(t *Tx) {
 
 // Rip is what we use to generate a rip coin
 type Rip struct {
-	Rip   string // Why do you live so far away from home? Because I'm not afraid to go to work.
-	Votes []Vote
+	Rip   string `json:"rip"` // Why do you live so far away from home? Because I'm not afraid to go to work.
+	Votes []Vote `json:"votes"`
 }
 
 // Vote is when someone actually votes on the current rip
 type Vote struct {
-	Address  []byte // The person voting
-	Approval bool   // 0 or 1
+	Address  []byte `json:"address"`  // The person voting
+	Approval bool   `json:"approval"` // 0 or 1
 }
 
 // Signature is used for validating transactions

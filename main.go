@@ -3,9 +3,32 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
+	"os/user"
 
-	"github.com/nathanjohnson320/rip-coin/ipfs"
+	"github.com/gorilla/websocket"
+	"github.com/nathanjohnson320/rip-coin/rip"
+	"github.com/nathanjohnson320/rip-coin/ws"
 )
+
+func init() {
+	// Do checks for wallet
+	fmt.Println("Loading wallet...")
+
+	usr, _ := user.Current()
+	dir := usr.HomeDir
+
+	_, err := os.Open(dir + "/.rip/wallet.dat")
+	if err != nil {
+		fmt.Println("No wallet found, generating...")
+		wally := rip.Wallet{}
+		wally.New()
+
+		wally.Save(dir + "/.rip/")
+	} else {
+		fmt.Println("Wallet loaded!")
+	}
+}
 
 func main() {
 	// // Walk through the entire process
@@ -67,15 +90,26 @@ func main() {
 	// // Complete the transaction
 	// transaction.Complete()
 	// fmt.Println("Complete")
-	c := make(chan string)
-	go func() {
-		for {
-			m := <-c
-			fmt.Println(m)
-		}
-	}()
-	ipfs.Subscribe(c)
+	// c := make(chan string)
+	// go func() {
+	// 	for {
+	// 		m := <-c
+	// 		fmt.Println(m)
+	// 	}
+	// }()
+	// ipfs.Subscribe(c)
 
-	app := http.FileServer(http.Dir("./rip-coin/dist"))
-	http.ListenAndServe(":6969", app)
+	// Websockets
+	var upgrader = websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+		CheckOrigin:     func(r *http.Request) bool { return true },
+	}
+	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		ws.Handle(w, r, upgrader)
+	})
+
+	// UI routes
+	http.Handle("/", http.FileServer(http.Dir("./rip-coin/dist")))
+	http.ListenAndServe(":6969", nil)
 }
