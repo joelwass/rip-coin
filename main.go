@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"time"
+	"net/http"
 
 	"github.com/nathanjohnson320/rip-coin/ipfs"
 )
@@ -67,22 +67,15 @@ func main() {
 	// // Complete the transaction
 	// transaction.Complete()
 	// fmt.Println("Complete")
-
-	spin := make(chan bool)
+	c := make(chan string)
 	go func() {
-		c := make(chan string)
-		ipfs.Subscribe(c)
-
-		go func() {
-			for {
-				m := <-c
-				fmt.Println(m)
-			}
-		}()
-
-		ipfs.Publish("Hello")
-		time.Sleep(5 * time.Second)
-		ipfs.Publish("Its me")
+		for {
+			m := <-c
+			fmt.Println(m)
+		}
 	}()
-	<-spin
+	ipfs.Subscribe(c)
+
+	app := http.FileServer(http.Dir("./rip-coin/dist"))
+	http.ListenAndServe(":6969", app)
 }
