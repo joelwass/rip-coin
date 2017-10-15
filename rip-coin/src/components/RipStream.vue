@@ -3,7 +3,6 @@
     <v-card flat>
       <v-card-text>
         <v-container fluid>
-          {{msg}}
           <v-layout row>
             <v-flex xs4>
               <v-subheader>New Rip</v-subheader>
@@ -30,6 +29,22 @@
               Add Rip
             </v-btn>
           </v-layout>
+
+          <v-layout row>
+            <v-flex xs12>
+              <v-data-table
+                :items="ripStream"
+                class="elevation-1"
+                hide-actions
+                hide-headers
+              >
+              <template slot="items" slot-scope="props">
+                <td>{{ props.item.id }}</td>
+                <td>{{ props.item.rip.rip }}</td>
+              </template>
+            </v-data-table>
+            </v-flex>
+          </v-layout>
         </v-container>
       </v-card-text>
     </v-card>
@@ -49,15 +64,16 @@ export default {
       closed() {
       },
       onmessage(e) {
-        self.msg = e.data;
+        self.ripStream.unshift(JSON.parse(e.data));
       },
     });
   },
   data() {
     return {
+      ripStream: [],
       rip: '',
       ripAddress: '',
-      msg: 'Welcome to Your Vue.js App',
+      msg: '',
     };
   },
   methods: {

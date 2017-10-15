@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/websocket"
+	"github.com/nathanjohnson320/rip-coin/ipfs"
 	"github.com/nathanjohnson320/rip-coin/rip"
 )
 
@@ -29,7 +30,9 @@ var wsHandles = map[string]func(rip.Tx) []byte{
 			return nil
 		}
 
-		return tB
+		// Publish the transaction
+		ipfs.Publish(string(tB))
+		return nil
 	},
 }
 
@@ -47,6 +50,21 @@ func Handle(w http.ResponseWriter, r *http.Request, upgrader websocket.Upgrader)
 		return
 	}
 
+	// Subscribe to IPFS transactions
+	c := make(chan string)
+	go func() {
+		for {
+			m := <-c
+			err = conn.WriteMessage(1, []byte(m))
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+		}
+	}()
+	ipfs.Subscribe(c)
+
+	// Handle incoming websocket messages
 	go func() {
 		for {
 			payload := new(Payload)
@@ -59,10 +77,8 @@ func Handle(w http.ResponseWriter, r *http.Request, upgrader websocket.Upgrader)
 			// Get the response to send back
 			response := wsHandles[payload.Type](payload.Data)
 
-			err = conn.WriteMessage(1, response)
-			if err != nil {
-				fmt.Println(err)
-				return
+			if response != nil {
+				conn.WriteMessage(1, response)
 			}
 		}
 	}()

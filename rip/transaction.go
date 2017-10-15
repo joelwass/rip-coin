@@ -7,10 +7,13 @@ import (
 	"encoding/json"
 	"math/big"
 	"time"
+
+	"github.com/oklog/ulid"
 )
 
 // Tx is the transaction
 type Tx struct {
+	ID              string             `json:"id"`
 	PreviousHash    [32]byte           `json:"previousHash"`    // The last transaction hash
 	Hash            [32]byte           `json:"hash"`            // The hash for block validation
 	TotalAmount     int64              `json:"totalAmount"`     // All the RC generator for the transaction
@@ -26,6 +29,7 @@ func (t *Tx) Initiate(rip string, priv, pub []byte) {
 	t.TotalAmount = 1
 	t.Rip.Rip = rip
 	t.RipperPublicKey = pub
+	t.ID = getULID().String()
 	t.Sign(DecodePrivate(priv))
 }
 
@@ -89,4 +93,8 @@ type Vote struct {
 type Signature struct {
 	R *big.Int `json:"r"`
 	S *big.Int `json:"s"`
+}
+
+func getULID() ulid.ULID {
+	return ulid.MustNew(ulid.Timestamp(time.Now()), rand.Reader)
 }

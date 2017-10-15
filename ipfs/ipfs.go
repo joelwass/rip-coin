@@ -16,6 +16,16 @@ import (
 // https://ipfs.io/docs/api/#api-v0-add
 // use the only-hash param to get the hash
 
+func init() {
+	cmd := "ipfs"
+	args := []string{}
+
+	if err := exec.Command(cmd, args...).Run(); err != nil {
+		fmt.Println("ipfs not available, please start with `ipfs daemon --enable-pubsub-experiment`")
+		os.Exit(1)
+	}
+}
+
 // Subscribe listens on a message for new data
 func Subscribe(sub chan string) {
 	cmdName := "ipfs"
