@@ -7,6 +7,7 @@ import (
 	"os/user"
 
 	"github.com/gorilla/websocket"
+	"github.com/nathanjohnson320/rip-coin/ipfs"
 	"github.com/nathanjohnson320/rip-coin/rip"
 	"github.com/nathanjohnson320/rip-coin/ws"
 )
@@ -28,6 +29,8 @@ func init() {
 	} else {
 		fmt.Println("Wallet loaded!")
 	}
+
+	ipfs.Online()
 }
 
 func main() {

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"os/exec"
 )
@@ -17,10 +18,20 @@ import (
 // use the only-hash param to get the hash
 
 func init() {
+	// This only checks if ipfs is installed
 	cmd := "ipfs"
 	args := []string{}
 
 	if err := exec.Command(cmd, args...).Run(); err != nil {
+		fmt.Println("ipfs not available, please start with `ipfs daemon --enable-pubsub-experiment`")
+		os.Exit(1)
+	}
+}
+
+// Online checks if IPFS daemon is up
+func Online() {
+	_, err := http.Get("http://localhost:5001")
+	if err != nil {
 		fmt.Println("ipfs not available, please start with `ipfs daemon --enable-pubsub-experiment`")
 		os.Exit(1)
 	}
