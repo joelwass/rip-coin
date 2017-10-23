@@ -31,7 +31,25 @@ var wsHandles = map[string]func(rip.Tx) []byte{
 		}
 
 		// Publish the transaction
-		ipfs.Publish(string(tB))
+		ipfs.Publish("rip-coin-tx", string(tB))
+		return nil
+	},
+	"new_block": func(transaction rip.Tx) []byte {
+		tB, err := json.Marshal(transaction)
+		if err != nil {
+			fmt.Println("Could not marshal transaction.")
+			return nil
+		}
+		ipfs.Publish("rip-coin-block", string(tB))
+		return nil
+	},
+	"vote": func(transaction rip.Tx) []byte {
+		tB, err := json.Marshal(transaction)
+		if err != nil {
+			fmt.Println("Could not marshal transaction.")
+			return nil
+		}
+		ipfs.Publish("rip-coin-vote", string(tB))
 		return nil
 	},
 }
@@ -55,7 +73,14 @@ func Handle(w http.ResponseWriter, r *http.Request, upgrader websocket.Upgrader)
 	go func() {
 		for {
 			m := <-c
-			err = conn.WriteMessage(1, []byte(m))
+
+			tB, err := json.Marshal(Message{Label: "new_tx", Payload: m})
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+
+			err = conn.WriteMessage(1, tB)
 			if err != nil {
 				fmt.Println(err)
 				return
@@ -64,12 +89,16 @@ func Handle(w http.ResponseWriter, r *http.Request, upgrader websocket.Upgrader)
 	}()
 	ipfs.Subscribe(c)
 
+	// Send up the user's public key
+	sendKeys(conn)
+
 	// Handle incoming websocket messages
 	go func() {
 		for {
 			payload := new(Payload)
 			err := conn.ReadJSON(&payload)
 			if err != nil {
+				fmt.Println("Error decoding inbound message")
 				fmt.Println(err)
 				return
 			}
@@ -82,4 +111,41 @@ func Handle(w http.ResponseWriter, r *http.Request, upgrader websocket.Upgrader)
 			}
 		}
 	}()
+}
+
+func sendKeys(conn *websocket.Conn) {
+	// Grab the wallet
+	w, err := rip.LoadWallet()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	j, err := json.Marshal(w)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	m := Message{
+		Label:   "pub_key",
+		Payload: string(j),
+	}
+	j, err = json.Marshal(m)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	err = conn.WriteMessage(1, j)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+}
+
+// Message is the generic struct we send up to the UI
+type Message struct {
+	Label   string `json:"label"`
+	Payload string `json:"payload"`
 }

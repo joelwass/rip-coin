@@ -38,13 +38,42 @@
                 hide-actions
                 hide-headers
               >
-              <template slot="items" slot-scope="props">
-                <td>{{ props.item.id }}</td>
-                <td>{{ props.item.rip.rip }}</td>
-              </template>
-            </v-data-table>
+                <template slot="items" slot-scope="props">
+                  <td>{{ props.item.id }}</td>
+                  <td>{{ props.item.rip.rip }}</td>
+                  <td><v-btn color="primary" dark @click.stop="() => toggleVoteDialog(props.item)">Vote!</v-btn></td>
+                </template>
+              </v-data-table>
             </v-flex>
           </v-layout>
+
+          <v-dialog v-model="voteDialog">
+            <v-card>
+              <v-card-title>
+                Vote on rip
+              </v-card-title>
+
+              <v-card-text>
+                <v-layout row>
+                  <v-flex xs6>
+                    <v-btn fab dark @click.native="() => vote(true)">
+                      <v-icon dark>thumb_up</v-icon>
+                    </v-btn>
+                  </v-flex>
+
+                  <v-flex xs6>
+                    <v-btn fab dark @click.native="() => vote(false)">
+                      <v-icon dark>thumb_down</v-icon>
+                    </v-btn>
+                  </v-flex>
+                </v-layout>
+              </v-card-text>
+
+              <v-card-actions>
+                <v-btn color="primary" flat @click.stop="voteDialog = false">Close</v-btn>
+              </v-card-actions>
+            </v-card>
+          </v-dialog>
         </v-container>
       </v-card-text>
     </v-card>
@@ -64,12 +93,26 @@ export default {
       closed() {
       },
       onmessage(e) {
-        self.ripStream.unshift(JSON.parse(e.data));
+        const res = JSON.parse(e.data);
+        const payload = JSON.parse(res.payload);
+        switch (res.label) {
+          case 'pub_key':
+            self.key = payload.Pub;
+            break;
+          case 'new_tx':
+            self.ripStream.unshift(payload);
+            break;
+          default:
+            throw new Error(`Unhandled type ${res.label}`);
+        }
       },
     });
   },
   data() {
     return {
+      key: '',
+      selectedTx: {},
+      voteDialog: false,
       ripStream: [],
       rip: '',
       ripAddress: '',
@@ -89,6 +132,25 @@ export default {
           },
         },
       });
+    },
+    vote(approval) {
+      const { selectedTx } = this;
+      if (!selectedTx.rip.votes) selectedTx.rip.votes = [];
+
+      // Add your vote
+      selectedTx.rip.votes.push({
+        address: this.key,
+        approval,
+      });
+
+      this.sock.send({
+        type: 'vote',
+        data: selectedTx,
+      });
+    },
+    toggleVoteDialog(tx) {
+      this.selectedTx = tx;
+      this.voteDialog = !this.voteDialog;
     },
   },
 };

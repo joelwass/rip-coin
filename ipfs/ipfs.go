@@ -77,9 +77,9 @@ func Subscribe(sub chan string) {
 }
 
 // Publish pushes a msg to the rip-coin-tx topic
-func Publish(msg string) {
+func Publish(t, msg string) {
 	cmd := "ipfs"
-	args := []string{"pubsub", "pub", "rip-coin-tx", msg + "死"}
+	args := []string{"pubsub", "pub", t, msg + "死"}
 
 	if err := exec.Command(cmd, args...).Run(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
