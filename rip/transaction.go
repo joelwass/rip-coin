@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"time"
 
@@ -14,8 +15,8 @@ import (
 // Tx is the transaction
 type Tx struct {
 	ID              string             `json:"id"`
-	PreviousHash    [32]byte           `json:"previousHash"`    // The last transaction hash
-	Hash            [32]byte           `json:"hash"`            // The hash for block validation
+	PreviousHash    string             `json:"previousHash"`    // The last transaction hash
+	Hash            string             `json:"hash"`            // The hash for block validation
 	TotalAmount     int64              `json:"totalAmount"`     // All the RC generator for the transaction
 	NumVotes        int64              `json:"numVotes"`        // How many people voted
 	RipperPublicKey []byte             `json:"ripperPublicKey"` // Who initiated the transaction
@@ -72,7 +73,7 @@ func AddToBlockchain(t *Tx) {
 	t.Timestamp = time.Now().Unix()
 
 	tBytes, _ := json.Marshal(t)
-	t.Hash = sha256.Sum256(tBytes)
+	t.Hash = fmt.Sprintf("%x", sha256.Sum256(tBytes))
 
 	// Todo: blockchain lol
 }
