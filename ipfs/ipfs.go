@@ -23,6 +23,7 @@ func init() {
 	args := []string{}
 
 	if err := exec.Command(cmd, args...).Run(); err != nil {
+		// Start the daemon for them
 		fmt.Println("ipfs not available, please start with `ipfs daemon --enable-pubsub-experiment`")
 		os.Exit(1)
 	}
@@ -32,8 +33,30 @@ func init() {
 func Online() {
 	_, err := http.Get("http://localhost:5001")
 	if err != nil {
-		fmt.Println("ipfs not available, please start with `ipfs daemon --enable-pubsub-experiment`")
-		os.Exit(1)
+		fmt.Println("IPFS not running, starting manually...")
+		args := []string{"daemon", "--enable-pubsub-experiment"}
+		cmd := exec.Command("ipfs", args...)
+
+		// Pipe the output to our terminal
+		stdOut, err := cmd.StdoutPipe()
+		if err != nil {
+			fmt.Println("Error creating StdoutPipe for Cmd", err)
+			os.Exit(1)
+		}
+
+		// Log output to the Terminal
+		scanner := bufio.NewScanner(stdOut)
+		go func() {
+			for scanner.Scan() {
+				fmt.Printf("IPFS: %s\n", scanner.Text())
+			}
+		}()
+
+		err = cmd.Start()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Error starting Cmd", err)
+			os.Exit(1)
+		}
 	}
 }
 
@@ -55,14 +78,16 @@ func Subscribe(sub chan string) {
 		for {
 			c, _, err := reader.ReadRune()
 			if err != nil {
+				fmt.Println(err)
 				break
 			}
 
 			// We terminate on the chinese character for dead
 			// or if we're at 1mb of buffer
 			if c == '死' || len(s) > 1048576 {
-				sub <- string(s)
+				str := string(s)
 				s = []rune{}
+				sub <- str
 			} else {
 				s = append(s, c)
 			}
@@ -79,7 +104,7 @@ func Subscribe(sub chan string) {
 // Publish pushes a msg to the rip-coin-tx topic
 func Publish(t, msg string) {
 	cmd := "ipfs"
-	args := []string{"pubsub", "pub", t, msg + "死"}
+	args := []string{"pubsub", "pub", t, msg + string('死')}
 
 	if err := exec.Command(cmd, args...).Run(); err != nil {
 		fmt.Fprintln(os.Stderr, err)

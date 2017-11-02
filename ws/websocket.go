@@ -69,10 +69,12 @@ func Handle(w http.ResponseWriter, r *http.Request, upgrader websocket.Upgrader)
 	}
 
 	// Subscribe to IPFS transactions
-	c := make(chan string)
 	go func() {
+		c := make(chan string)
+		ipfs.Subscribe(c)
 		for {
 			m := <-c
+			fmt.Println(m)
 
 			tB, err := json.Marshal(Message{Label: "new_tx", Payload: m})
 			if err != nil {
@@ -86,8 +88,8 @@ func Handle(w http.ResponseWriter, r *http.Request, upgrader websocket.Upgrader)
 				return
 			}
 		}
+
 	}()
-	ipfs.Subscribe(c)
 
 	// Send up the user's public key
 	sendKeys(conn)
