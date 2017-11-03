@@ -4,6 +4,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -19,14 +20,14 @@ type Tx struct {
 	Hash            string             `json:"hash"`            // The hash for block validation
 	TotalAmount     int64              `json:"totalAmount"`     // All the RC generator for the transaction
 	NumVotes        int64              `json:"numVotes"`        // How many people voted
-	RipperPublicKey []byte             `json:"ripperPublicKey"` // Who initiated the transaction
+	RipperPublicKey string             `json:"ripperPublicKey"` // Who initiated the transaction
 	Rip             `json:"rip"`       // The context of the rip
 	Timestamp       int64              `json:"timestamp"` // Current time that we can use for expiration
 	Signature       `json:"signature"` // The signature of the transaction used to reject bogus transactions
 }
 
 // Initiate starts a transaction, verifies it
-func (t *Tx) Initiate(rip string, priv, pub []byte) {
+func (t *Tx) Initiate(rip, pub string, priv []byte) {
 	t.TotalAmount = 1
 	t.Rip.Rip = rip
 	t.RipperPublicKey = pub
@@ -37,7 +38,13 @@ func (t *Tx) Initiate(rip string, priv, pub []byte) {
 // Verify verifies that the incoming transaction is in fact valid
 func (t *Tx) Verify() bool {
 	// Get the public key
-	key := DecodePublic(t.RipperPublicKey)
+	// Base64 the trash because of golang's idiocy
+	k, err := base64.StdEncoding.DecodeString(t.RipperPublicKey)
+	if err != nil {
+		fmt.Println("Error decoding public key")
+		return false
+	}
+	key := DecodePublic(k)
 
 	// Return the verification of said rip
 	return ecdsa.Verify(key, []byte(t.Rip.Rip), t.Signature.R, t.Signature.S)
@@ -54,7 +61,7 @@ func (t *Tx) Sign(key *ecdsa.PrivateKey) {
 
 // Complete checks the votes and if they're all good seal
 // the deal with a hash and send it off to IPFS
-func (t *Tx) Complete() {
+func (t *Tx) Complete(previousBlock Block) {
 	yay := 0
 	for _, vote := range t.Votes {
 		if vote.Approval {
@@ -64,13 +71,14 @@ func (t *Tx) Complete() {
 
 	// Majority votes?
 	if yay > (len(t.Votes) / 2) {
-		AddToBlockchain(t)
+		AddToBlockchain(t, previousBlock)
 	}
 }
 
 // AddToBlockchain sends the transaction off to IPFS
-func AddToBlockchain(t *Tx) {
+func AddToBlockchain(t *Tx, previousBlock Block) {
 	t.Timestamp = time.Now().Unix()
+	t.PreviousHash = previousBlock.Hash
 
 	tBytes, _ := json.Marshal(t)
 	t.Hash = fmt.Sprintf("%x", sha256.Sum256(tBytes))

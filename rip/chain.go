@@ -1,9 +1,10 @@
 package rip
 
 // Genesis is the IPFS hash of the genesis block
-const Genesis = "QmbR1iGdnLWg3HaJtejJxw9TqPQkhquWYHUaStxHtezWih"
+const Genesis = "QmZangbZcrTWgU4UYn1ACxBUorfbivFmSetBKjS7yMpnX5"
 
 // Block is a block in the chain
 type Block struct {
-	Transactions []Tx `json:"transactions"`
+	Hash         string `json:"hash"`
+	Transactions []Tx   `json:"transactions"`
 }

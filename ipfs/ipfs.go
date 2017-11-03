@@ -111,3 +111,8 @@ func Publish(t, msg string) {
 		os.Exit(1)
 	}
 }
+
+// Get returns a file for a given hash
+func Get(hash string) ([]byte, error) {
+	return exec.Command("ipfs", "cat", hash).Output()
+}
