@@ -2,11 +2,16 @@ package ipfs
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
+
+	"github.com/nathanjohnson320/rip-coin/rip"
 )
 
 // TODO:
@@ -112,6 +117,30 @@ func Publish(t, msg string) {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+// AddToIPFS publishes the block to IPFS
+func AddToIPFS(b *rip.Block) *http.Response {
+	jsonBlock, err := json.Marshal(b)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error marshalling block for ipfs add", err)
+		os.Exit(1)
+	}
+	// create ipfs req to upload the json
+	req, _ := http.NewRequest("POST", "http://localhost:5001/api/v0/add?recursive=false", bytes.NewBuffer(jsonBlock))
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error pushing to ipfs chain", err)
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+
+	body, _ := ioutil.ReadAll(resp.Body)
+	fmt.Println("response Body:", string(body))
+	return resp
 }
 
 // Get returns a file for a given hash
