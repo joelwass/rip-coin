@@ -22,8 +22,8 @@ var wsHandles = map[string]func(rip.Tx) []byte{
 			fmt.Println("Could not load wallet.")
 			return nil
 		}
+		transaction.Initiate(string(transaction.Rip.Rip), string(transaction.RipperPublicKey), w.Priv)
 
-		transaction.Initiate(string(transaction.Rip.Rip), w.Priv, w.Pub)
 		tB, err := json.Marshal(transaction)
 		if err != nil {
 			fmt.Println("Could not marshal transaction.")
